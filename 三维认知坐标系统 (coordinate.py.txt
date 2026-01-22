@@ -1,0 +1,278 @@
+python 
+# cognitive_immortality/core/coordinate.py 
+""" 
+三维认知坐标系系统 
+定义认知概念的坐标表示和基本操作 
+""" 
+ 
+import numpy as np 
+from dataclasses import dataclass 
+from typing import Tuple, List, Optional 
+import math 
+ 
+ 
+@dataclass 
+class CognitiveCoordinate: 
+    """ 
+    三维认知坐标 
+    α: 离散认知强度 [0,1] - 离散/显式思维 vs 模糊/连续感觉 
+    β: 连续认知强度 [0,1] - 流动/渐进理解 vs 跳跃/阶段性把握   
+    γ: 关系认知强度 [0,1] - 关注连接结构 vs 关注内在属性 
+    """ 
+    alpha: float  # 离散认知强度 
+    beta: float   # 连续认知强度 
+    gamma: float  # 关系认知强度 
+     
+    def __post_init__(self): 
+        """验证坐标值在有效范围内""" 
+        for name, value in [('alpha', self.alpha), ('beta', self.beta), ('ga
+mma', self.gamma)]: 
+            if not 0 <= value <= 1: 
+                raise ValueError(f"{name} must be in [0,1], got {value}") 
+     
+    def to_array(self) -> np.ndarray: 
+        """转换为numpy数组""" 
+        return np.array([self.alpha, self.beta, self.gamma]) 
+     
+    def to_list(self) -> List[float]: 
+        """转换为列表""" 
+        return [self.alpha, self.beta, self.gamma] 
+     
+    @classmethod 
+    def from_array(cls, arr: np.ndarray) -> 'CognitiveCoordinate': 
+        """从数组创建坐标""" 
+        return cls(alpha=float(arr[0]), beta=float(arr[1]), gamma=float(arr
+[2])) 
+     
+    @classmethod 
+    def from_list(cls, lst: List[float]) -> 'CognitiveCoordinate': 
+        """从列表创建坐标""" 
+        return cls(alpha=lst[0], beta=lst[1], gamma=lst[2]) 
+     
+    def distance_to(self, other: 'CognitiveCoordinate', metric: str = 'eucli
+dean') -> float: 
+        """ 
+        计算与另一个坐标的距离 
+         
+        Args: 
+            other: 另一个认知坐标 
+            metric: 距离度量方式 ('euclidean', 'manhattan', 'cosine') 
+             
+        Returns: 
+            距离值 
+        """ 
+        if metric == 'euclidean': 
+            return float(np.linalg.norm(self.to_array() - other.to_array())) 
+        elif metric == 'manhattan': 
+            return float(np.sum(np.abs(self.to_array() - other.to_array()))) 
+        elif metric == 'cosine': 
+            dot_product = np.dot(self.to_array(), other.to_array()) 
+            norm_a = np.linalg.norm(self.to_array()) 
+            norm_b = np.linalg.norm(other.to_array()) 
+            return float(1 - dot_product / (norm_a * norm_b)) 
+        else: 
+            raise ValueError(f"Unknown metric: {metric}") 
+     
+    def is_in_comfort_zone(self, reference: 'CognitiveCoordinate',  
+                          radius: float = 0.25,  
+                          metric: str = 'euclidean') -> bool: 
+        """ 
+        判断是否在舒适区内 
+         
+        Args: 
+            reference: 参考坐标（舒适区中心） 
+            radius: 舒适区半径 
+            metric: 距离度量方式 
+             
+        Returns: 
+            是否在舒适区内 
+        """ 
+        distance = self.distance_to(reference, metric) 
+        return distance <= radius 
+     
+    def interpolate(self, other: 'CognitiveCoordinate', t: float = 0.5) -> '
+CognitiveCoordinate': 
+        """ 
+        与另一个坐标进行线性插值 
+         
+        Args: 
+            other: 另一个坐标 
+            t: 插值参数 (0=完全self, 1=完全other) 
+             
+        Returns: 
+            插值后的新坐标 
+        """ 
+        if not 0 <= t <= 1: 
+            raise ValueError(f"t must be in [0,1], got {t}") 
+         
+        new_alpha = self.alpha + t * (other.alpha - self.alpha) 
+        new_beta = self.beta + t * (other.beta - self.beta) 
+        new_gamma = self.gamma + t * (other.gamma - self.gamma) 
+         
+        return CognitiveCoordinate(new_alpha, new_beta, new_gamma) 
+     
+    def add_relational_enhancement(self, enhancement: float = 0.1) -> 'Cogni
+tiveCoordinate': 
+        """ 
+        添加关系增强（用于复杂概念涌现） 
+         
+        Args: 
+            enhancement: 关系增强值 
+             
+        Returns: 
+            增强后的新坐标 
+        """ 
+        return CognitiveCoordinate( 
+            alpha=self.alpha, 
+            beta=self.beta, 
+            gamma=min(1.0, self.gamma + enhancement) 
+        ) 
+     
+    def describe(self) -> str: 
+        """生成人类可读的描述""" 
+        descriptions = [] 
+         
+        # α维度描述 
+        if self.alpha > 0.7: 
+            descriptions.append("高度离散化思维") 
+        elif self.alpha > 0.4: 
+            descriptions.append("混合认知风格") 
+        else: 
+            descriptions.append("连续直觉感知") 
+         
+        # β维度描述 
+        if self.beta > 0.7: 
+            descriptions.append("流动渐进理解") 
+        elif self.beta > 0.4: 
+            descriptions.append("中等连续性") 
+        else: 
+            descriptions.append("跳跃阶段把握") 
+         
+        # γ维度描述 
+        if self.gamma > 0.7: 
+            descriptions.append("强结构性关注") 
+        elif self.gamma > 0.4: 
+            descriptions.append("中等关系性") 
+        else: 
+            descriptions.append("内在属性关注") 
+         
+        return f"认知坐标[{self.alpha:.2f}, {self.beta:.2f}, {self.gamma:.2
+f}]: {', '.join(descriptions)}" 
+     
+    def __str__(self) -> str: 
+        return f"CognitiveCoordinate(α={self.alpha:.3f}, β={self.beta:.3f}, 
+γ={self.gamma:.3f})" 
+     
+    def __repr__(self) -> str: 
+        return self.__str__() 
+ 
+ 
+class CoordinateSystem: 
+    """坐标系统工具类""" 
+     
+    @staticmethod 
+    def calculate_centroid(coordinates: List[CognitiveCoordinate]) -> Cognit
+iveCoordinate: 
+        """计算一组坐标的质心""" 
+        if not coordinates: 
+            raise ValueError("Cannot calculate centroid of empty list") 
+         
+        alphas = np.mean([c.alpha for c in coordinates]) 
+        betas = np.mean([c.beta for c in coordinates]) 
+        gammas = np.mean([c.gamma for c in coordinates]) 
+         
+        return CognitiveCoordinate(alphas, betas, gammas) 
+     
+    @staticmethod 
+    def calculate_dispersion(coordinates: List[CognitiveCoordinate]) -> Tupl
+e[float, float, float]: 
+        """计算坐标集的离散度（各维度的标准差）""" 
+        if len(coordinates) < 2: 
+            return 0.0, 0.0, 0.0 
+         
+        alphas = [c.alpha for c in coordinates] 
+        betas = [c.beta for c in coordinates] 
+        gammas = [c.gamma for c in coordinates] 
+         
+        return ( 
+            float(np.std(alphas)), 
+            float(np.std(betas)), 
+            float(np.std(gammas)) 
+        ) 
+     
+    @staticmethod 
+    def is_cross_domain(coordinates: List[CognitiveCoordinate],  
+                       threshold: float = 0.3) -> bool: 
+        """ 
+        判断坐标集是否跨越不同认知域 
+         
+        Args: 
+            coordinates: 坐标列表 
+            threshold: 离散度阈值 
+             
+        Returns: 
+            是否跨越认知域 
+        """ 
+        if len(coordinates) < 2: 
+            return False 
+         
+        dispersion = CoordinateSystem.calculate_dispersion(coordinates) 
+        avg_dispersion = np.mean(dispersion) 
+         
+        return avg_dispersion > threshold 
+     
+    @staticmethod 
+    def predict_bridge_coordinate(domain_a: List[CognitiveCoordinate], 
+                                 domain_b: List[CognitiveCoordinate], 
+                                 relational_boost: float = 0.05) -> CognitiveC
+oordinate: 
+        """ 
+        预测连接两个认知域的桥梁坐标 
+         
+        Args: 
+            domain_a: 认知域A的坐标 
+            domain_b: 认知域B的坐标 
+            relational_boost: 关系增强值 
+             
+        Returns: 
+            预测的桥梁坐标 
+        """ 
+        centroid_a = CoordinateSystem.calculate_centroid(domain_a) 
+        centroid_b = CoordinateSystem.calculate_centroid(domain_b) 
+         
+        # 计算中点 
+        bridge = centroid_a.interpolate(centroid_b, 0.5) 
+         
+        # 增强关系性（连接不同域需要更高结构抽象） 
+        bridge = bridge.add_relational_enhancement(relational_boost) 
+         
+        return bridge 
+ 
+ 
+# 预定义的标准坐标示例 
+class StandardCoordinates: 
+    """标准概念坐标示例（基于论文中的例子）""" 
+     
+    # 数学概念 
+    NATURAL_NUMBERS = CognitiveCoordinate(0.9, 0.1, 0.3) 
+    EUCLIDEAN_POINT = CognitiveCoordinate(0.1, 0.9, 0.2) 
+    CATEGORY = CognitiveCoordinate(0.7, 0.3, 0.95) 
+    FUNCTION = CognitiveCoordinate(0.6, 0.5, 0.8) 
+    LIMIT = CognitiveCoordinate(0.4, 0.7, 0.85) 
+     
+    # 物理概念 
+    SYMMETRY_BREAKING = CognitiveCoordinate(0.85, 0.35, 0.90) 
+    QUANTUM_STATE = CognitiveCoordinate(0.7, 0.4, 0.88) 
+     
+    # 生物概念 
+    MORPHOGENESIS = CognitiveCoordinate(0.40, 0.85, 0.75) 
+    TURING_PATTERN = CognitiveCoordinate(0.55, 0.80, 0.85) 
+    GENE_EXPRESSION = CognitiveCoordinate(0.45, 0.90, 0.70) 
+     
+    @classmethod 
+    def get_all_standard_coords(cls) -> dict: 
+        """获取所有标准坐标""" 
+        return {k: v for k, v in cls.__dict__.items()  
+                if not k.startswith('_') and isinstance(v, CognitiveCoordinat
+e)} 
+ 

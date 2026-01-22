@@ -1,0 +1,497 @@
+python 
+# cognitive_immortality/core/affective_dynamics.py 
+""" 
+情感动力学系统 
+模拟认知过程的动力系统，包括需求、信心、能量等核心状态变量 
+""" 
+import numpy as np 
+from dataclasses import dataclass, field 
+from typing import Optional, Dict, Any, Tuple 
+import math 
+from datetime import datetime, timedelta 
+import random 
+@dataclass 
+class SoulParameters: 
+""" 
+灵魂参数集 - 定义系统的认知性格 
+参数说明： 
+β₀: 基线置信度 [0,1] - 历史成功任务的平均置信度 
+Δ: 置信度波动范围 [0,1] - 认知稳定性指标 
+ch: 高置信增强系数 (0,2] - >1乐观，<1谨慎 
+b: 基线能动性 [0.1,0.5] - 平均置信度下的行动倾向 
+m: 置信灵敏度 [0.3,1.0] - 对置信度变化的响应强度 
+cl: 低置信抑制系数 [0.1,0.5] - 低置信度时的抑制程度 
+η: 学习率 (0,1) - 成功后的置信度提升速率 
+δ: 失败衰减率 (0,1) - 失败后的置信度衰减速率 
+r: 需求衰减率 (0,1) - 成功后的需求衰减速率 
+β_c: 切换阈值 [0,1] - 坚持vs切换的决策阈值 
+n: 韧性特质 >0 - 从失败中恢复的能力 
+E_baseline: 基线能量预算 >0 - 默认认知能量 
+""" 
+# 信心系统参数 
+β₀: float = 0.65      
+Δ: float = 0.15       
+ch: float = 1.2       
+b: float = 0.25       
+m: float = 0.6        
+cl: float = 0.3       
+# 基线置信度 
+# 置信度波动范围 
+# 高置信增强系数（乐观） 
+# 基线能动性 
+# 置信灵敏度 
+# 低置信抑制系数（谨慎） 
+     
+    # 学习与适应参数 
+    η: float = 0.4        # 学习率 
+    δ: float = 0.7        # 失败衰减率 
+    r: float = 0.6        # 需求衰减率 
+    β_c: float = 0.4      # 切换阈值 
+     
+    # 韧性与能量参数 
+    n: float = 10.0       # 韧性特质 
+    E_baseline: float = 12.0  # 基线能量预算 
+     
+    # 个性化标签 
+    personality_type: str = field(default="balanced") 
+    description: str = field(default="平衡型认知性格") 
+     
+    def __post_init__(self): 
+        """参数验证""" 
+        # 信心系统验证 
+        assert 0 <= self.β₀ <= 1, f"β₀必须在[0,1]之间，当前值: {self.β₀}" 
+        assert 0 <= self.Δ <= 1, f"Δ必须在[0,1]之间，当前值: {self.Δ}" 
+        assert 0 < self.ch <= 2, f"ch必须在(0,2]之间，当前值: {self.ch}" 
+        assert 0.1 <= self.b <= 0.5, f"b必须在[0.1,0.5]之间，当前值: {self.b}" 
+        assert 0.3 <= self.m <= 1.0, f"m必须在[0.3,1.0]之间，当前值: {self.m}" 
+        assert 0.1 <= self.cl <= 0.5, f"cl必须在[0.1,0.5]之间，当前值: {self.c
+l}" 
+         
+        # 学习与适应验证 
+        assert 0 < self.η < 1, f"η必须在(0,1)之间，当前值: {self.η}" 
+        assert 0 < self.δ < 1, f"δ必须在(0,1)之间，当前值: {self.δ}" 
+        assert 0 < self.r < 1, f"r必须在(0,1)之间，当前值: {self.r}" 
+        assert 0 <= self.β_c <= 1, f"β_c必须在[0,1]之间，当前值: {self.β_c}" 
+         
+        # 韧性与能量验证 
+        assert self.n > 0, f"n必须大于0，当前值: {self.n}" 
+        assert self.E_baseline > 0, f"E_baseline必须大于0，当前值: {self.E_ba
+seline}" 
+     
+    @classmethod 
+    def create_optimistic_personality(cls) -> 'SoulParameters': 
+        """创建乐观型性格""" 
+        return cls( 
+            β₀=0.75, Δ=0.20, ch=1.5, b=0.35, m=0.8, cl=0.2, 
+            η=0.5, δ=0.6, r=0.7, β_c=0.3, 
+            n=8.0, E_baseline=15.0, 
+            personality_type="optimistic", 
+            description="乐观探索型：高自信，快速学习，勇于尝试" 
+        ) 
+     
+    @classmethod 
+    def create_cautious_personality(cls) -> 'SoulParameters': 
+        """创建谨慎型性格""" 
+        return cls( 
+            β₀=0.55, Δ=0.10, ch=0.8, b=0.15, m=0.4, cl=0.4, 
+            η=0.3, δ=0.8, r=0.5, β_c=0.6, 
+            n=12.0, E_baseline=10.0, 
+            personality_type="cautious", 
+            description="谨慎稳健型：低风险偏好，稳步积累，韧性较强" 
+        ) 
+     
+    @classmethod 
+    def create_exploratory_personality(cls) -> 'SoulParameters': 
+        """创建探索型性格""" 
+        return cls( 
+            β₀=0.60, Δ=0.25, ch=1.3, b=0.30, m=0.7, cl=0.25, 
+            η=0.45, δ=0.65, r=0.65, β_c=0.35, 
+            n=9.0, E_baseline=13.0, 
+            personality_type="exploratory", 
+            description="探索发现型：中等自信，喜欢尝试新领域，学习能力中等" 
+        ) 
+     
+    def to_dict(self) -> Dict[str, Any]: 
+        """转换为字典""" 
+        return { 
+            'β₀': self.β₀, 'Δ': self.Δ, 'ch': self.ch, 'b': self.b, 
+            'm': self.m, 'cl': self.cl, 'η': self.η, 'δ': self.δ, 
+            'r': self.r, 'β_c': self.β_c, 'n': self.n,  
+            'E_baseline': self.E_baseline, 
+            'personality_type': self.personality_type, 
+            'description': self.description 
+        } 
+     
+    def __str__(self) -> str: 
+        return f"SoulParameters({self.personality_type}: β₀={self.β₀:.2f}, Δ
+={self.Δ:.2f}, ch={self.ch:.2f})" 
+ 
+ 
+class AffectiveState: 
+    """ 
+    情感状态 - 系统的当前认知状态 
+    """ 
+     
+    def __init__(self, soul_params: SoulParameters): 
+        # 核心状态变量 
+        self.X: float = 0.5  # 需求强度 [0,1] - 认知饥饿程度 
+        self.Y: float = 0.5  # 资源完整度 [0,1] - 当前理解储备 
+        self.β: float = soul_params.β₀  # 当前置信度 [0,1] 
+        self.E: float = soul_params.E_baseline  # 当前能量预算 
+         
+        # 历史记录 
+        self.history: list = [] 
+        self.success_count: int = 0 
+        self.failure_count: int = 0 
+        self.last_update_time: datetime = datetime.now() 
+         
+        # 灵魂参数引用 
+        self.soul_params = soul_params 
+         
+        # 驱动力状态 
+        self.D: float = 0.0  # 当前驱动力 
+        self.α: float = 0.0  # 当前能动性 
+         
+    def _confidence_effect_function(self, confidence: float) -> float: 
+        """ 
+        置信度效应函数 φ(β) 
+        根据置信度计算行动倾向修正系数 
+        """ 
+        params = self.soul_params 
+        β_low = params.β₀ - params.Δ 
+        β_high = params.β₀ + params.Δ 
+         
+        if confidence < β_low: 
+            # 低置信区域：抑制行动 
+            return params.b * params.cl 
+        elif confidence > β_high: 
+            # 高置信区域：增强行动 
+            return params.b + params.m * params.ch * (confidence - params.β₀) 
+        else: 
+            # 正常区域：线性响应 
+            return params.b + params.m * (confidence - β_low) / (2 * params.
+Δ) 
+     
+    def calculate_agency(self) -> float: 
+        """ 
+        计算能动性 α = X * Y * φ(β) 
+        表示系统的行动欲望强度 
+        """ 
+        φ = self._confidence_effect_function(self.β) 
+        self.α = self.X * self.Y * φ 
+        return self.α 
+     
+    def calculate_drive_derivative(self) -> float: 
+        """ 
+        计算驱动力变化率 dD/dt = αX - βY 
+        正值表示认知饥饿推动，负值表示信心不足拖累 
+        """ 
+        dD_dt = self.α * self.X - self.β * self.Y 
+        self.D = dD_dt  # 简单模型：驱动力等于变化率 
+        return dD_dt 
+     
+    def update_energy(self, task_difficulty: float = 1.0) -> float: 
+        """ 
+        更新能量预算 
+        ΔE = C * (1 - β)，其中C是任务难度系数 
+        """ 
+        energy_consumption = task_difficulty * (1 - self.β) 
+        self.E = max(0.1, self.E - energy_consumption) 
+        return energy_consumption 
+     
+    def attempt_success(self, task_difficulty: float = 1.0) -> Dict[str, An
+y]: 
+        """ 
+        尝试成功后的状态更新 
+        """ 
+        # 记录历史状态 
+        prev_state = { 
+            'X': self.X, 'Y': self.Y, 'β': self.β,  
+            'E': self.E, 'time': self.last_update_time 
+        } 
+         
+        # 成功更新规则 
+        self.X = self.soul_params.r * self.X  # 需求衰减 
+        self.Y = min(1.0, self.Y + 0.1)       # 资源增加 
+        self.β = self.β + self.soul_params.η * (1 - self.β)  # 信心增强 
+        self.β = min(1.0, self.β)  # 信心上限 
+         
+        # 能量更新 
+        energy_used = self.update_energy(task_difficulty) 
+         
+        # 更新统计 
+        self.success_count += 1 
+        self.last_update_time = datetime.now() 
+         
+        # 记录状态变化 
+        result = { 
+            'success': True, 
+            'previous_state': prev_state, 
+            'new_state': { 
+                'X': self.X, 'Y': self.Y, 'β': self.β,  
+                'E': self.E, 'α': self.calculate_agency() 
+            }, 
+            'energy_used': energy_used, 
+            'drive_change': self.calculate_drive_derivative() 
+        } 
+         
+        self.history.append(result) 
+        return result 
+     
+    def attempt_failure(self, task_difficulty: float = 1.0) -> Dict[str, An
+y]: 
+        """ 
+        尝试失败后的状态更新 
+        有两种可能的路径：坚持(B1)或切换(B2) 
+        """ 
+        # 记录历史状态 
+        prev_state = { 
+            'X': self.X, 'Y': self.Y, 'β': self.β,  
+            'E': self.E, 'time': self.last_update_time 
+        } 
+         
+        # 计算路径选择概率 
+        P_B1 = self.β / (self.β + self.soul_params.β_c)  # 坚持概率 
+        P_B2 = 1 - P_B1  # 切换概率 
+         
+        # 随机选择路径（实际系统中可能根据更多因素决策） 
+        choose_persistence = random.random() < P_B1 
+         
+        if choose_persistence: 
+            # 路径B1：坚持 - 信心衰减但资源不变 
+            self.β = self.soul_params.δ * self.β 
+            path = 'persistence' 
+            path_description = f"坚持原方向 (概率={P_B1:.2f})" 
+        else: 
+            # 路径B2：切换 - 保留需求，重置信心，寻找新资源 
+            # β重置到基线附近 
+            self.β = max(0.3, self.soul_params.β₀ - 0.1) 
+            path = 'shift' 
+            path_description = f"切换新方向 (概率={P_B2:.2f})" 
+         
+        # 能量消耗（失败也消耗能量） 
+        energy_used = self.update_energy(task_difficulty * 1.2)  # 失败消耗更
+多 
+         
+        # 更新统计 
+        self.failure_count += 1 
+        self.last_update_time = datetime.now() 
+         
+        # 记录状态变化 
+        result = { 
+            'success': False, 
+            'path_chosen': path, 
+            'path_description': path_description, 
+            'persistence_probability': P_B1, 
+            'shift_probability': P_B2, 
+            'previous_state': prev_state, 
+            'new_state': { 
+                'X': self.X, 'Y': self.Y, 'β': self.β,  
+                'E': self.E, 'α': self.calculate_agency() 
+            }, 
+            'energy_used': energy_used, 
+            'drive_change': self.calculate_drive_derivative() 
+        } 
+         
+        self.history.append(result) 
+        return result 
+     
+    def calculate_resilience_efficiency(self) -> float: 
+        """ 
+        计算韧性效率 R = n / E 
+        表示单位能量能够承受的挫折次数 
+        """ 
+        if self.E <= 0: 
+            return 0.0 
+        return self.soul_params.n / self.E 
+     
+    def generate_new_demand(self, current_connectivity: float,  
+                           required_connectivity: float) -> float: 
+        """ 
+        生成新的认知需求 
+        X = 1 - (当前连接度 / 所需连接度) 
+        """ 
+        if required_connectivity <= 0: 
+            return 0.0 
+         
+        ratio = current_connectivity / required_connectivity 
+        new_X = 1.0 - min(1.0, ratio) 
+         
+        # 平滑更新：取新旧需求的加权平均 
+        self.X = 0.7 * self.X + 0.3 * new_X 
+        return self.X 
+     
+    def assess_task_confidence(self, domain_familiarities: Dict[str, float], 
+                              task_weights: Optional[Dict[str, float]] = None)
+ -> float: 
+        """ 
+        评估任务的综合置信度 
+         
+        Args: 
+            domain_familiarities: 领域熟悉度字典 {领域: 熟悉度[0,1]} 
+            task_weights: 任务权重字典 {领域: 权重} 
+             
+        Returns: 
+            加权置信度 
+        """ 
+        if not domain_familiarities: 
+            return self.β 
+         
+        if task_weights is None: 
+            # 默认等权重 
+            task_weights = {domain: 1.0 for domain in domain_familiarities} 
+         
+        # 计算加权熟悉度 
+        total_weight = sum(task_weights.values()) 
+        if total_weight <= 0: 
+            return self.β 
+         
+        weighted_familiarity = sum( 
+            domain_familiarities.get(domain, 0) * task_weights.get(domain, 
+1.0) 
+            for domain in domain_familiarities 
+        ) / total_weight 
+         
+        # 结合基线置信度 
+        task_confidence = 0.7 * self.soul_params.β₀ + 0.3 * weighted_familia
+rity 
+        return min(1.0, max(0.0, task_confidence)) 
+     
+    def get_state_summary(self) -> Dict[str, Any]: 
+        """获取当前状态摘要""" 
+        return { 
+            'demand_intensity_X': self.X, 
+            'resource_completeness_Y': self.Y, 
+            'confidence_β': self.β, 
+            'energy_E': self.E, 
+            'agency_α': self.calculate_agency(), 
+            'drive_derivative_dD_dt': self.calculate_drive_derivative(), 
+            'resilience_efficiency_R': self.calculate_resilience_efficiency
+(), 
+            'success_count': self.success_count, 
+            'failure_count': self.failure_count, 
+            'success_rate': (self.success_count / (self.success_count + self.
+failure_count)  
+                           if (self.success_count + self.failure_count) > 0 el
+se 0.0), 
+            'personality_type': self.soul_params.personality_type 
+        } 
+     
+    def get_recent_history(self, num_entries: int = 5) -> list: 
+        """获取最近的历史记录""" 
+        return self.history[-num_entries:] if self.history else [] 
+     
+    def __str__(self) -> str: 
+        summary = self.get_state_summary() 
+        return ( 
+            f"AffectiveState[\n" 
+            f"  需求 X={summary['demand_intensity_X']:.3f}, " 
+            f"资源 Y={summary['resource_completeness_Y']:.3f}\n" 
+            f"  信心 β={summary['confidence_β']:.3f}, " 
+            f"能量 E={summary['energy_E']:.3f}\n" 
+            f"  能动 α={summary['agency_α']:.3f}, " 
+            f"驱动力变化 dD/dt={summary['drive_derivative_dD_dt']:.3f}\n" 
+            f"  成功率={summary['success_rate']:.1%}, " 
+            f"性格={summary['personality_type']}\n" 
+            f"]" 
+        ) 
+ 
+ 
+class AffectiveDynamicsSystem: 
+    """ 
+    情感动力学系统 - 管理多个情感状态的系统 
+    """ 
+     
+    def __init__(self): 
+        self.states: Dict[str, AffectiveState] = {} 
+        self.active_state_id: Optional[str] = None 
+         
+    def create_state(self, state_id: str,  
+                    soul_params: Optional[SoulParameters] = None, 
+                    initial_X: float = 0.5, 
+                    initial_Y: float = 0.5) -> AffectiveState: 
+        """创建新的情感状态""" 
+        if soul_params is None: 
+            soul_params = SoulParameters()  # 默认平衡型 
+         
+        state = AffectiveState(soul_params) 
+        state.X = initial_X 
+        state.Y = initial_Y 
+         
+        self.states[state_id] = state 
+         
+        if self.active_state_id is None: 
+            self.active_state_id = state_id 
+             
+        return state 
+     
+    def get_active_state(self) -> Optional[AffectiveState]: 
+        """获取当前活跃状态""" 
+        if self.active_state_id and self.active_state_id in self.states: 
+            return self.states[self.active_state_id] 
+        return None 
+     
+    def switch_active_state(self, state_id: str) -> bool: 
+        """切换活跃状态""" 
+        if state_id in self.states: 
+            self.active_state_id = state_id 
+            return True 
+        return False 
+     
+    def evolve_personality(self, state_id: str,  
+                          success_experiences: int = 0, 
+                          failure_experiences: int = 0) -> SoulParameters: 
+        """ 
+        根据经验演化灵魂参数 
+         
+        Args: 
+            state_id: 状态ID 
+            success_experiences: 成功经验数量 
+            failure_experiences: 失败经验数量 
+             
+        Returns: 
+            演化后的新灵魂参数 
+        """ 
+        if state_id not in self.states: 
+            raise ValueError(f"状态 {state_id} 不存在") 
+         
+        state = self.states[state_id] 
+        old_params = state.soul_params 
+         
+        # 计算演化系数 
+        total_experiences = success_experiences + failure_experiences 
+        if total_experiences == 0: 
+            return old_params 
+         
+        success_ratio = success_experiences / total_experiences 
+         
+        # 根据经验演化参数 
+        new_params = SoulParameters( 
+            # 成功率高则提升基线信心 
+            β₀=min(1.0, old_params.β₀ + 0.02 * success_ratio), 
+             
+            # 经验丰富则降低波动 
+            Δ=max(0.05, old_params.Δ - 0.01 * total_experiences / 100), 
+             
+            # 成功率高则更乐观 
+            ch=min(2.0, old_params.ch + 0.05 * success_ratio), 
+             
+            # 保持其他参数相对稳定或微调 
+            b=old_params.b, 
+            m=old_params.m, 
+            cl=max(0.1, old_params.cl - 0.02 * success_ratio), 
+            η=min(0.9, old_params.η + 0.01 * success_ratio), 
+            δ=old_params.δ, 
+            r=old_params.r, 
+            β_c=max(0.1, old_params.β_c - 0.02 * success_ratio), 
+            n=old_params.n + 0.1 * total_experiences / 100, 
+            E_baseline=old_params.E_baseline, 
+            personality_type=f"evolved_{old_params.personality_type}", 
+            description=f"演化自{old_params.personality_type}，经验:{total_ex
+periences}次" 
+        ) 
+         
+        # 更新状态参数 
+        state.soul_params = new_params 
+        return new_params 
+ 

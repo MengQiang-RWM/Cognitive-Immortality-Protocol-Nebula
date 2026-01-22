@@ -1,0 +1,536 @@
+python 
+# cognitive_immortality/data_structures/cognitive_dna.py 
+""" 
+认知DNA数据结构 
+记录完整认知事件轨迹的基础数据结构 
+""" 
+import uuid 
+from dataclasses import dataclass, field, asdict 
+from typing import List, Dict, Any, Optional, Tuple 
+from datetime import datetime 
+import json 
+from enum import Enum 
+class CognitiveEventType(Enum): 
+"""认知事件类型枚举""" 
+CONCEPT_EXTRACTION = "concept_extraction"      
+# 概念提取 
+COORDINATE_CALCULATION = "coordinate_calculation"  # 坐标计算 
+COMFORT_ZONE_EVALUATION = "comfort_zone_evaluation"  # 舒适区评估 
+ADJUSTMENT_PROPOSAL = "adjustment_proposal"    
+VALIDATION = "validation"                      
+# 调整提案 
+# 验证 
+NARRATIVE_GENERATION = "narrative_generation"  # 叙事生成 
+KNOWLEDGE_UPDATE = "knowledge_update"          
+# 知识更新 
+CREATIVE_BREAKTHROUGH = "creative_breakthrough"  # 创造性突破 
+SETBACK_RECOVERY = "setback_recovery"          
+DIMENSION_EXPANSION = "dimension_expansion"    
+class ValidationResult(Enum): 
+"""验证结果枚举""" 
+APPROVED = "approved"          
+REJECTED = "rejected"          
+# 批准 
+# 拒绝 
+# 挫折恢复 
+# 维度扩展 
+PARTIALLY_APPROVED = "partially_approved"  # 部分批准 
+NEEDS_REVISION = "needs_revision"          
+# 需要修改 
+EXTERNAL_REVIEW_NEEDED = "external_review_needed"  # 需要外部评审 
+@dataclass 
+class EvidenceItem: 
+""" 
+证据项 - 支持认知调整的证据 
+     
+    Attributes: 
+        source_type: 证据来源类型 ('training_sample', 'external_knowledge', '
+internal_reasoning') 
+        content: 证据内容描述 
+        confidence: 证据置信度 [0.0, 1.0] 
+        timestamp: 证据生成时间 
+        metadata: 额外元数据 
+    """ 
+     
+    source_type: str 
+    content: str 
+    confidence: float = 0.5 
+    timestamp: datetime = field(default_factory=datetime.now) 
+    metadata: Dict[str, Any] = field(default_factory=dict) 
+     
+    def __post_init__(self): 
+        """验证证据项""" 
+        valid_source_types = ['training_sample', 'external_knowledge', 'inte
+rnal_reasoning'] 
+        if self.source_type not in valid_source_types: 
+            raise ValueError(f"source_type必须是{valid_source_types}之一") 
+         
+        if not 0.0 <= self.confidence <= 1.0: 
+            raise ValueError(f"confidence必须在[0.0, 1.0]之间，当前值: {self.c
+onfidence}") 
+     
+    def to_dict(self) -> Dict[str, Any]: 
+        """转换为字典（可序列化）""" 
+        result = asdict(self) 
+        result['timestamp'] = self.timestamp.isoformat() 
+        return result 
+ 
+ 
+@dataclass 
+class EmotionalTrace: 
+    """ 
+    情感轨迹 - 记录认知过程中的情感状态 
+     
+    Attributes: 
+        demand_intensity_X: 需求强度 [0.0, 1.0] 
+        confidence_β: 置信度 [0.0, 1.0] 
+        energy_E: 能量值 
+        timestamp: 记录时间 
+    """ 
+     
+    demand_intensity_X: float 
+    confidence_β: float 
+    energy_E: float 
+    timestamp: datetime = field(default_factory=datetime.now) 
+     
+    def __post_init__(self): 
+        """验证情感轨迹值""" 
+        if not 0.0 <= self.demand_intensity_X <= 1.0: 
+            raise ValueError(f"demand_intensity_X必须在[0.0, 1.0]之间") 
+        if not 0.0 <= self.confidence_β <= 1.0: 
+            raise ValueError(f"confidence_β必须在[0.0, 1.0]之间") 
+        if self.energy_E < 0: 
+            raise ValueError(f"energy_E必须大于等于0") 
+     
+    def to_list(self) -> List[float]: 
+        """转换为列表格式 [X, β, E]""" 
+        return [self.demand_intensity_X, self.confidence_β, self.energy_E] 
+     
+    def to_dict(self) -> Dict[str, Any]: 
+        """转换为字典（可序列化）""" 
+        return { 
+            'demand_intensity_X': self.demand_intensity_X, 
+            'confidence_β': self.confidence_β, 
+            'energy_E': self.energy_E, 
+            'timestamp': self.timestamp.isoformat() 
+        } 
+ 
+ 
+@dataclass 
+class CognitiveDNA: 
+    """ 
+    认知DNA - 记录完整认知事件的基础结构 
+     
+    Attributes: 
+        trigger: 触发此思考的事件或问题 
+        event_type: 认知事件类型 
+        concept_names: 涉及的概念名称列表 
+        static_coords: 激活的静态坐标（可序列化格式） 
+        reasoning_path: 思考路径（推理步骤列表） 
+        conclusion: 得出的结论 
+        validation_result: 验证结果 
+        validation_score: 可信度评分 [0.0, 1.0] 
+        emotional_trace: 关联的情感轨迹 
+        evidence_chain: 证据链 
+        metadata: 额外元数据 
+    """ 
+     
+    # 核心标识信息 
+    id: str = field(default_factory=lambda: str(uuid.uuid4())) 
+    trigger: str = "" 
+    event_type: CognitiveEventType = CognitiveEventType.CONCEPT_EXTRACTION 
+    timestamp: datetime = field(default_factory=datetime.now) 
+     
+    # 认知内容 
+    concept_names: List[str] = field(default_factory=list) 
+    static_coords: List[List[float]] = field(default_factory=list)  # [[α,β,
+γ], ...] 
+    reasoning_path: List[str] = field(default_factory=list) 
+    conclusion: Optional[str] = None 
+     
+    # 验证信息 
+    validation_result: ValidationResult = ValidationResult.APPROVED 
+    validation_score: float = 0.5 
+     
+    # 情感与证据 
+    emotional_trace: Optional[EmotionalTrace] = None 
+    evidence_chain: List[EvidenceItem] = field(default_factory=list) 
+     
+    # 元数据 
+    cognitive_density: float = 1.0  # 认知密度 
+    processing_time_ms: Optional[int] = None  # 处理时间（毫秒） 
+    energy_consumed: Optional[float] = None  # 消耗的能量 
+    metadata: Dict[str, Any] = field(default_factory=dict) 
+     
+    def add_concept_coordinate(self, concept_name: str, coord: List[float]): 
+        """添加概念坐标""" 
+        self.concept_names.append(concept_name) 
+        self.static_coords.append(coord) 
+     
+    def add_reasoning_step(self, step: str): 
+        """添加推理步骤""" 
+        self.reasoning_path.append(step) 
+     
+    def add_evidence(self, evidence: EvidenceItem): 
+        """添加证据""" 
+        self.evidence_chain.append(evidence) 
+     
+    def set_emotional_trace(self, X: float, β: float, E: float): 
+        """设置情感轨迹""" 
+        self.emotional_trace = EmotionalTrace( 
+            demand_intensity_X=X, 
+            confidence_β=β, 
+            energy_E=E 
+        ) 
+     
+    def calculate_evidence_confidence(self) -> float: 
+        """计算证据链的综合置信度""" 
+        if not self.evidence_chain: 
+            return 0.0 
+         
+        total_confidence = sum(ev.confidence for ev in self.evidence_chain) 
+        return total_confidence / len(self.evidence_chain) 
+     
+    def get_coordinate_dispersion(self) -> Tuple[float, float, float]: 
+        """获取坐标离散度（各维度的标准差）""" 
+        if not self.static_coords or len(self.static_coords) < 2: 
+            return 0.0, 0.0, 0.0 
+         
+        import numpy as np 
+        coords_array = np.array(self.static_coords) 
+        return ( 
+            float(np.std(coords_array[:, 0])),  # α离散度 
+            float(np.std(coords_array[:, 1])),  # β离散度 
+            float(np.std(coords_array[:, 2]))   # γ离散度 
+        ) 
+     
+    def is_cross_domain_event(self, threshold: float = 0.3) -> bool: 
+        """判断是否是跨领域认知事件""" 
+        dispersion = self.get_coordinate_dispersion() 
+        avg_dispersion = sum(dispersion) / 3.0 
+        return avg_dispersion > threshold 
+     
+    def to_dict(self, include_metadata: bool = True) -> Dict[str, Any]: 
+        """转换为字典（可序列化）""" 
+        result = { 
+            'id': self.id, 
+            'trigger': self.trigger, 
+            'event_type': self.event_type.value, 
+            'timestamp': self.timestamp.isoformat(), 
+            'concept_names': self.concept_names, 
+            'static_coords': self.static_coords, 
+            'reasoning_path': self.reasoning_path, 
+            'conclusion': self.conclusion, 
+            'validation_result': self.validation_result.value, 
+            'validation_score': self.validation_score, 
+            'cognitive_density': self.cognitive_density, 
+            'processing_time_ms': self.processing_time_ms, 
+            'energy_consumed': self.energy_consumed, 
+        } 
+         
+        # 添加情感轨迹 
+        if self.emotional_trace: 
+            result['emotional_trace'] = self.emotional_trace.to_dict() 
+         
+        # 添加证据链 
+        result['evidence_chain'] = [ev.to_dict() for ev in self.evidence_cha
+in] 
+         
+        # 添加元数据 
+        if include_metadata: 
+            result['metadata'] = self.metadata 
+             
+            # 计算并添加统计信息 
+            result['statistics'] = { 
+                'num_concepts': len(self.concept_names), 
+                'num_reasoning_steps': len(self.reasoning_path), 
+                'num_evidence_items': len(self.evidence_chain), 
+                'evidence_confidence': self.calculate_evidence_confidence(), 
+                'coordinate_dispersion': self.get_coordinate_dispersion(), 
+                'is_cross_domain': self.is_cross_domain_event() 
+            } 
+         
+        return result 
+     
+    def to_json(self, indent: Optional[int] = 2) -> str: 
+        """转换为JSON字符串""" 
+        return json.dumps(self.to_dict(), indent=indent, ensure_ascii=False) 
+     
+    @classmethod 
+    def from_dict(cls, data: Dict[str, Any]) -> 'CognitiveDNA': 
+        """从字典创建CognitiveDNA""" 
+        # 处理时间戳 
+        timestamp = datetime.fromisoformat(data['timestamp']) if isinstance
+(data['timestamp'], str) else data['timestamp'] 
+         
+        # 处理事件类型 
+        event_type = CognitiveEventType(data['event_type']) 
+         
+        # 处理验证结果 
+        validation_result = ValidationResult(data['validation_result']) 
+         
+        # 处理情感轨迹 
+        emotional_trace = None 
+        if 'emotional_trace' in data and data['emotional_trace']: 
+            et_data = data['emotional_trace'] 
+            if isinstance(et_data['timestamp'], str): 
+                et_data['timestamp'] = datetime.fromisoformat(et_data['timest
+amp']) 
+            emotional_trace = EmotionalTrace(**et_data) 
+         
+        # 处理证据链 
+        evidence_chain = [] 
+        if 'evidence_chain' in data: 
+            for ev_data in data['evidence_chain']: 
+                if isinstance(ev_data['timestamp'], str): 
+                    ev_data['timestamp'] = datetime.fromisoformat(ev_data['ti
+mestamp']) 
+                evidence_chain.append(EvidenceItem(**ev_data)) 
+         
+        # 创建实例 
+        dna = cls( 
+            id=data.get('id', str(uuid.uuid4())), 
+            trigger=data.get('trigger', ''), 
+            event_type=event_type, 
+            timestamp=timestamp, 
+            concept_names=data.get('concept_names', []), 
+            static_coords=data.get('static_coords', []), 
+            reasoning_path=data.get('reasoning_path', []), 
+            conclusion=data.get('conclusion'), 
+            validation_result=validation_result, 
+            validation_score=data.get('validation_score', 0.5), 
+            emotional_trace=emotional_trace, 
+            evidence_chain=evidence_chain, 
+            cognitive_density=data.get('cognitive_density', 1.0), 
+            processing_time_ms=data.get('processing_time_ms'), 
+            energy_consumed=data.get('energy_consumed'), 
+            metadata=data.get('metadata', {}) 
+        ) 
+         
+        return dna 
+     
+    @classmethod 
+    def from_json(cls, json_str: str) -> 'CognitiveDNA': 
+        """从JSON字符串创建CognitiveDNA""" 
+        data = json.loads(json_str) 
+        return cls.from_dict(data) 
+     
+    def __str__(self) -> str: 
+        return f"CognitiveDNA[id={self.id[:8]}, type={self.event_type.valu
+e}, concepts={len(self.concept_names)}]" 
+ 
+ 
+class CognitiveArchive: 
+    """ 
+    认知档案 - 管理CognitiveDNA记录的系统 
+    """ 
+     
+    def __init__(self, archive_name: str = "default_archive"): 
+        self.archive_name = archive_name 
+        self.records: Dict[str, CognitiveDNA] = {} 
+        self.concept_index: Dict[str, List[str]] = {}  # 概念->记录ID索引 
+        self.event_type_index: Dict[CognitiveEventType, List[str]] = {} 
+        self.timestamp_index: List[Tuple[datetime, str]] = []  # (时间戳, 记
+录ID) 
+         
+    def add_record(self, dna: CognitiveDNA) -> str: 
+        """添加记录到档案""" 
+        self.records[dna.id] = dna 
+         
+        # 更新概念索引 
+        for concept in dna.concept_names: 
+            if concept not in self.concept_index: 
+                self.concept_index[concept] = [] 
+            self.concept_index[concept].append(dna.id) 
+         
+        # 更新事件类型索引 
+        if dna.event_type not in self.event_type_index: 
+            self.event_type_index[dna.event_type] = [] 
+        self.event_type_index[dna.event_type].append(dna.id) 
+         
+        # 更新时间戳索引 
+        self.timestamp_index.append((dna.timestamp, dna.id)) 
+        self.timestamp_index.sort(key=lambda x: x[0])  # 按时间排序 
+         
+        return dna.id 
+     
+    def get_record(self, record_id: str) -> Optional[CognitiveDNA]: 
+        """获取记录""" 
+        return self.records.get(record_id) 
+     
+    def search_by_concept(self, concept_name: str,  
+                         limit: Optional[int] = None) -> List[CognitiveDNA]: 
+        """按概念搜索记录""" 
+        if concept_name not in self.concept_index: 
+            return [] 
+         
+        record_ids = self.concept_index[concept_name] 
+        if limit: 
+            record_ids = record_ids[:limit] 
+         
+        return [self.records[rid] for rid in record_ids if rid in self.record
+s] 
+     
+    def search_by_event_type(self, event_type: CognitiveEventType, 
+                           limit: Optional[int] = None) -> List[CognitiveDNA]: 
+        """按事件类型搜索记录""" 
+        if event_type not in self.event_type_index: 
+            return [] 
+         
+        record_ids = self.event_type_index[event_type] 
+        if limit: 
+            record_ids = record_ids[:limit] 
+         
+        return [self.records[rid] for rid in record_ids if rid in self.record
+s] 
+     
+    def search_by_time_range(self, start_time: datetime,  
+                           end_time: datetime) -> List[CognitiveDNA]: 
+        """按时间范围搜索记录""" 
+        results = [] 
+        for timestamp, record_id in self.timestamp_index: 
+            if start_time <= timestamp <= end_time: 
+                if record_id in self.records: 
+                    results.append(self.records[record_id]) 
+            elif timestamp > end_time: 
+                break 
+        return results 
+     
+    def get_concept_history(self, concept_name: str) -> List[CognitiveDNA]: 
+        """获取概念的历史认知记录（按时间排序）""" 
+        records = self.search_by_concept(concept_name) 
+        records.sort(key=lambda x: x.timestamp) 
+        return records 
+     
+    def get_cross_domain_events(self, threshold: float = 0.3) -> List[Cognit
+iveDNA]: 
+        """获取所有跨领域认知事件""" 
+        results = [] 
+        for dna in self.records.values(): 
+            if dna.is_cross_domain_event(threshold): 
+                results.append(dna) 
+        return results 
+     
+    def get_statistics(self) -> Dict[str, Any]: 
+        """获取档案统计信息""" 
+        total_records = len(self.records) 
+         
+        # 按事件类型统计 
+        event_type_stats = {} 
+        for event_type, record_ids in self.event_type_index.items(): 
+            event_type_stats[event_type.value] = len(record_ids) 
+         
+        # 概念频率统计 
+        concept_freq = {} 
+        for concept, record_ids in self.concept_index.items(): 
+            concept_freq[concept] = len(record_ids) 
+         
+        # 时间范围 
+        if self.timestamp_index: 
+            earliest = self.timestamp_index[0][0] 
+            latest = self.timestamp_index[-1][0] 
+            time_span = latest - earliest 
+        else: 
+            earliest = latest = None 
+            time_span = None 
+         
+        return { 
+            'total_records': total_records, 
+            'unique_concepts': len(self.concept_index), 
+            'event_type_distribution': event_type_stats, 
+            'most_frequent_concepts': dict(sorted(concept_freq.items(),  
+                                                 key=lambda x: x[1],  
+                                                 reverse=True)[:10]), 
+            'time_range': { 
+                'earliest': earliest.isoformat() if earliest else None, 
+                'latest': latest.isoformat() if latest else None, 
+                'span_days': time_span.days if time_span else 0 
+            }, 
+            'cross_domain_events': len(self.get_cross_domain_events()) 
+        } 
+     
+    def export_to_json(self, filepath: str, indent: int = 2): 
+        """导出档案到JSON文件""" 
+        export_data = { 
+            'archive_name': self.archive_name, 
+            'records': [dna.to_dict() for dna in self.records.values()], 
+            'metadata': { 
+                'export_time': datetime.now().isoformat(), 
+                'total_records': len(self.records) 
+            } 
+        } 
+         
+        with open(filepath, 'w', encoding='utf-8') as f: 
+            json.dump(export_data, f, indent=indent, ensure_ascii=False, def
+ault=str) 
+     
+    @classmethod 
+    def import_from_json(cls, filepath: str) -> 'CognitiveArchive': 
+        """从JSON文件导入档案""" 
+        with open(filepath, 'r', encoding='utf-8') as f: 
+            import_data = json.load(f) 
+         
+        archive = cls(archive_name=import_data.get('archive_name', 'imported
+_archive')) 
+         
+        for record_data in import_data['records']: 
+            dna = CognitiveDNA.from_dict(record_data) 
+            archive.add_record(dna) 
+         
+        return archive 
+     
+    def __len__(self) -> int: 
+        return len(self.records) 
+     
+    def __str__(self) -> str: 
+        stats = self.get_statistics() 
+        return (f"CognitiveArchive[name={self.archive_name}, " 
+                f"records={stats['total_records']}, " 
+                f"concepts={stats['unique_concepts']}]") 
+ 
+ 
+# 工具函数：创建标准认知DNA示例 
+def create_example_dna() -> CognitiveDNA: 
+    """创建示例认知DNA记录""" 
+    dna = CognitiveDNA( 
+        trigger="思考如何统一对称性破缺和形态发生", 
+        event_type=CognitiveEventType.CREATIVE_BREAKTHROUGH, 
+        cognitive_density=8.9 
+    ) 
+     
+    # 添加概念坐标 
+    dna.add_concept_coordinate("对称性破缺", [0.85, 0.35, 0.90]) 
+    dna.add_concept_coordinate("形态发生", [0.40, 0.85, 0.75]) 
+    dna.add_concept_coordinate("范畴论", [0.70, 0.30, 0.98]) 
+     
+    # 添加推理路径 
+    dna.add_reasoning_step("识别两个概念的核心差异：离散vs连续") 
+    dna.add_reasoning_step("寻找共同点：都是结构变化过程") 
+    dna.add_reasoning_step("考虑使用范畴论作为统一框架") 
+    dna.add_reasoning_step("使用自然变换描述相变过程") 
+     
+    # 设置结论 
+    dna.conclusion = "使用范畴论的自然变换可以统一描述对称性破缺和形态发生" 
+     
+    # 添加证据 
+    dna.add_evidence(EvidenceItem( 
+        source_type="external_knowledge", 
+        content="范畴论处理结构保持映射", 
+        confidence=0.9 
+    )) 
+     
+    dna.add_evidence(EvidenceItem( 
+        source_type="internal_reasoning", 
+        content="对称性=结构不变性，形态发生=结构演化", 
+        confidence=0.8 
+    )) 
+     
+    # 设置情感轨迹 
+    dna.set_emotional_trace(X=0.85, β=0.69, E=9.3) 
+     
+    # 设置验证信息 
+    dna.validation_result = ValidationResult.APPROVED 
+    dna.validation_score = 0.88 
+     
+    return dna 
+ 
