@@ -1,6 +1,6 @@
 # Cognitive-Immortality-Protocol-Nebula
 feat: Inject V2.0 Nebula Manifesto with live website link
-# 认知永生协议：工程参考实现 (私密构建版)
+# 认知永生协议：工程参考实现
 > Cognitive Immortality Protocol: Engineering Reference Implementation (Private Build)
 
 **此仓库为预发布私密版本。这是我们构建认知生命基本生理系统的工程沙盒。**
