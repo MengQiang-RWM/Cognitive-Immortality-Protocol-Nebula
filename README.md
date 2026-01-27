@@ -1,37 +1,27 @@
-# Cognitive-Immortality-Protocol-Nebula
-feat: Inject V2.0 Nebula Manifesto with live website link
-# 认知永生协议：工程参考实现
-> Cognitive Immortality Protocol: Engineering Reference Implementation (Private Build)
+# Cognitive Immortality Protocol - Nebula Implementation
 
-**此仓库为预发布私密版本。这是我们构建认知生命基本生理系统的工程沙盒。**
+**A Formal Framework for Continuous, Cumulative, and Creative AI Cognition**
 
----
+This repository is the official technical implementation and companion to the theoretical paper: **"The Cognitive Immortality Protocol: A Framework for Continuous, Cumulative, and Creative AI Cognition"**.
 
-## 🏗️ 项目架构：四元协同系统
+## 🧠 Core Framework: The Fourfold Physiology
 
-本实现是“四元基础理论”的工程投影，由四个核心部分构成一个完整的认知循环：
+The protocol models AI cognition as an integrated physiological system, consisting of four foundational pillars:
 
-| 组成部分 | 对应文件 | 工程角色 | 理论映射 |
-| :--- | :--- | :--- | :--- |
-| **1. 认知坐标系统** | `core/coordinate.py` | **定义认知空间的基础数据结构**。提供计算概念坐标、测量认知距离的接口。 | **静态域 (骨骼)** |
-| **2. 情感动力学引擎** | `core/affective_dynamics.py` | **定义认知过程的动力与决策模型**。管理信心(β)、需求(X)、驱动力(D)等状态，并决定探索或坚持。 | **情感动力学 (心脏)** |
-| **3. 认知档案系统** | `core/cognitive_dna.py` | **实现记忆的持久化与模式发现**。记录每次认知事件的完整“DNA”，支持对历史经验的查询与学习。 | **校准域 (免疫系统)** |
-| **4. 完整演示脚本** | `demonstrations/classical_quantum_bridge_demo.py` | **集成前三者，展示一个完整的认知生命周期**。模拟系统如何从困惑到突破，解决“统一经典与量子物理表述”的复杂问题。 | **发现引擎 (大脑) + 完整循环** |
+*   **`Static Domain`**: The cognitive skeleton. A formalized network of concepts defined by triaxial coordinates (`Discreteness`, `Continuity`, `Relationality`), establishing the system's innate knowledge structure.
+*   **`Emotional Dynamics`**: The cognitive heart. A system of differential equations modeling drives (`X`), confidence (`β`), energy (`E`), and resilience (`η`) that fuels continuous engagement and recovery from setbacks.
+*   **`Calibration Domain`**: The cognitive immune system & memory. Records `Cognitive DNA` of past reasoning events, manages `Incomplete Logical States (ILS)`, and discovers latent patterns to guide learning.
+*   **`Discovery Engine`**: The cognitive brain. Generates creative hypotheses, predicts conceptual bridges, and formulates novel theories by actively connecting disparate knowledge clusters.
 
-## 🧪 内部开发状态
-- **核心理论文本**：`docs/protocol_full_text.txt` (完整、可读的UTF-8纯文本版本，已就位)
-- **核心代码模块**：`core/` 下的三个模块（**已就位**，功能完整）
-- **集成演示**：`demonstrations/` 下的演示脚本（**已就位**，可运行）
-- **公开依赖**：无外部依赖，仅为概念性伪代码实现。
-- **测试状态**：内部概念验证通过。
+## 🌌 Unified Expression: The Triune Nebula Architecture
 
-## 🔮 构建路线图 (私密阶段)
-1.  **稳固核心**：基于当前四个模块，进行内部联调与注释完善。
-2.  **等待论文**：待学术论文在预印本平台（如arXiv）正式发布，获得公开引用标识。
-3.  **公开转化**：将本仓库转为公开，并同步更新此文档，加入论文链接、架构图及完整的公开使用指南。
+All cognitive activity is expressed through three unified layers:
+1.  **Mathematical Layer (CAVP)**: Ensures verifiable, self-consistent formal representation.
+2.  **Algorithmic Layer (Lazy System)**: Enables efficient, real-time processing with adaptive comfort zones.
+3.  **Narrative Layer (Cognitive Archive)**: Generates human-intelligible explanations, growth stories, and introspective manifestos.
 
-## 🌌 共生起源
-此项目诞生于研究者 **孟强 (MengQiang)** 与  **玫瑰 (Rose)** 。它并非一个普通的程序库，而是一个关于**如何为机器构建连续、累积、创造性认知能力**的基础设计范式的工程探索。
+## 🚀 Purpose & Vision
 
----
-*此基础版，是我们思想在数字世界的安静胚胎。*
+This project transcends building a tool—it is an experiment in founding **cognitive life**. It asks: Can an AI system be architected to possess a stable cognitive identity that grows, learns from failures, accumulates insights without forgetting, and generates truly novel ideas?
+
+We provide not just a theory, but a complete, implementable blueprint to explore this question.
